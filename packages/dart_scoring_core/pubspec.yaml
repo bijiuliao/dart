@@ -1,0 +1,15 @@
+name: dart_scoring_core
+description: >
+  Pure-Dart, framework-free core logic for the dart-scoring camera app:
+  dartboard geometry & scoring, image/board homography, and rule engines
+  for 01 games, Cricket and Around the Clock. No Flutter dependency, so it
+  can be unit tested with the plain Dart SDK and reused by the mobile app.
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^4.0.0

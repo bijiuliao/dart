@@ -1,0 +1,27 @@
+name: dart_scoring_app
+description: >
+  Point your phone's camera at a real dartboard and it keeps score for
+  you — 501/301 (double-out etc.), Cricket, Around the Clock, any number
+  of players, manual or camera-assisted/auto-detected throws.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.24.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  camera: ^0.11.0+2
+  provider: ^6.1.2
+  dart_scoring_core:
+    path: ../packages/dart_scoring_core
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

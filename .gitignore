@@ -1,0 +1,29 @@
+# Dart / Flutter
+.dart_tool/
+.packages
+build/
+*.g.dart.bak
+
+# Packages (as opposed to apps) conventionally don't commit their lockfile.
+packages/dart_scoring_core/pubspec.lock
+
+# Flutter platform folders are generated with `flutter create .` and
+# intentionally not checked in yet — see app/README (root README) for
+# setup instructions.
+app/android/
+app/ios/
+app/macos/
+app/linux/
+app/windows/
+app/web/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.metadata
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
