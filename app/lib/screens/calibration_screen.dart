@@ -100,7 +100,17 @@ class _CalibrationScreenState extends State<CalibrationScreen> {
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text(_error!, textAlign: TextAlign.center),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(_error!, textAlign: TextAlign.center),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: _goToScoring,
+                        child: const Text('略過校準，改用手動計分'),
+                      ),
+                    ],
+                  ),
                 ),
               )
             : (_controller == null || !_controller!.value.isInitialized)

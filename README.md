@@ -50,62 +50,54 @@ Flutter、不需要手機或相機就能對「規則對不對」做完整單元�
 
 ## 快速開始
 
-這個 repo 目前只包含 App 的 Dart 原始碼；Android / iOS 的原生專案資料夾
-需要用 Flutter CLI 產生（本環境沒有安裝 Flutter SDK，所以無法在這裡直接
-`flutter run` 驗證，請在你自己的機器上完成以下步驟）：
+Android / iOS（以及本機開發用的 Linux 桌面）原生專案資料夾已經包含在這
+個 repo 裡（用 `flutter create` 產生），相機權限也已經加好，不需要再自
+己跑 `flutter create`：
 
 ```bash
 # 1. 安裝 Flutter（如尚未安裝）：https://docs.flutter.dev/get-started/install
 
-# 2. 在 app/ 目錄產生 Android / iOS 原生專案骨架
 cd app
-flutter create --platforms=android,ios --org com.example .
-
-# 3. 加入相機權限（見下方）
-
-# 4. 安裝套件相依
 flutter pub get
 
-# 5. 執行（需接上手機或使用有相機的模擬器/實體裝置）
+# 接上手機（或啟動有相機的模擬器）
 flutter run
 ```
 
-`flutter create .` 在已有 `lib/`、`pubspec.yaml` 的資料夾內執行是官方支
-援的用法，只會補上 `android/`、`ios/` 等原生資料夾，不會覆蓋你的程式碼。
-
 ### 相機權限
 
-**Android**（`app/android/app/src/main/AndroidManifest.xml`，在
-`<manifest>` 內加入）：
+已經加在專案裡了：
 
-```xml
-<uses-permission android:name="android.permission.CAMERA" />
-<uses-feature android:name="android.hardware.camera" android:required="true" />
-```
+- **Android**：`app/android/app/src/main/AndroidManifest.xml` 內的
+  `<uses-permission android:name="android.permission.CAMERA" />`。
+- **iOS**：`app/ios/Runner/Info.plist` 內的 `NSCameraUsageDescription`。
 
-同時確認 `android/app/build.gradle` 的 `minSdkVersion` 至少為 21（`camera`
-套件要求）。
+如果之後想改權限說明文字或加其他權限，直接改這兩個檔案即可。
 
-**iOS**（`app/ios/Runner/Info.plist`，加入一組 key）：
-
-```xml
-<key>NSCameraUsageDescription</key>
-<string>需要使用相機來對準並辨識飛鏢盤</string>
-```
-
-### 執行核心邏輯的單元測試
+### 測試 / 驗證方式
 
 ```bash
+# 核心規則/幾何邏輯（純 Dart，不需要裝置）
 cd packages/dart_scoring_core
-dart pub get
-dart test
+dart pub get && dart test          # 29 個測試
+
+# App 層（Widget 測試 + 靜態分析）
+cd app
+flutter pub get
+flutter analyze                    # 目前 0 warning/error
+flutter test                       # 涵蓋首頁→新遊戲→（略過校準）手動計分畫面的完整流程
 ```
 
-這個套件的 29 個測試（幾何換算、透視轉換、01/Cricket 規則、悔棋等）已在
-本次開發中於純 Dart SDK 下全數通過。Flutter App 那一層（相機串流、UI）
-因為本環境沒有 Flutter SDK，**尚未實際編譯 / 執行驗證**，請在你自己的機
-器上跑一次 `flutter analyze` 與 `flutter run` 確認；如果遇到編譯錯誤歡迎
-回報，我可以直接修。
+以上都已經在開發過程中實際跑過並全數通過；另外也在本機把 App 編成 Linux
+桌面版本（`flutter build linux`）並用虛擬螢幕實際點擊操作過一輪 —— 開新
+遊戲、進入校準畫面（沒有相機時會顯示錯誤訊息＋略過按鈕，符合預期）、略
+過校準後在手動飛鏢盤上點擊 BULL / T20 / S20，分數與版面都正確更新
+（501→451→391→371）並在第 3 鏢後正確自動換人。相機串流/自動辨識那部分
+（`availableCameras()`、`CameraController`、`startImageStream`）因為這個
+環境沒有手機或相機裝置，**還沒有在真正的相機硬體上測過**，邏輯是照
+`camera` 套件的公開 API 寫的，但實機行為（尤其是不同手機的預覽旋轉/座
+標系，見 `frame_geometry.dart` 的註解）還是需要你在自己的手機上跑一次
+確認。
 
 ## 怎麼玩
 
@@ -161,8 +153,9 @@ dart test
 
 ## 已知限制 / 之後可以做的事
 
-- 這裡沒有實際在手機上跑過（環境沒有 Flutter SDK），UI 排版、相機旋轉
-  換算等在真實裝置上大機率需要微調。
+- App 邏輯與畫面已經在 Linux 桌面版本上實際編譯、執行並操作驗證過（見上
+  方「測試 / 驗證方式」），但還沒有在真正的手機/相機硬體上跑過，相機旋
+  轉換算等在真實裝置上可能需要微調。
 - 自動辨識目前是單張影格差異的啟發式方法，之後可以換成更穩健的做法（例
   如固定機位 + 背景相減 + 更嚴謹的形狀/大小過濾，或串接一個小型物件偵測
   模型）。

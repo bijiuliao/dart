@@ -27,6 +27,7 @@ class DartboardTapWidget extends StatelessWidget {
             width: side,
             height: side,
             child: GestureDetector(
+              key: const ValueKey('dartboardTapTarget'),
               onTapDown: (details) => _handleTap(details.localPosition, side),
               child: CustomPaint(
                 painter: _DartboardPainter(),
@@ -82,7 +83,7 @@ class _DartboardPainter extends CustomPainter {
     canvas.drawCircle(center, BoardGeometry.innerBullRadius * scale, Paint()..color = DartboardTapWidget._red);
 
     final wireColor = Paint()
-      ..color = Colors.white.withOpacity(0.15)
+      ..color = Colors.white.withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     canvas.drawCircle(center, BoardGeometry.doubleOuterRadius * scale, wireColor);

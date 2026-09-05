@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:dart_scoring_core/dart_scoring_core.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +14,7 @@ class CalibrationPointsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final dot = Paint()..color = Colors.amber;
     final line = Paint()
-      ..color = Colors.amber.withOpacity(0.7)
+      ..color = Colors.amber.withValues(alpha: 0.7)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
@@ -63,7 +62,7 @@ class BoardWireframePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withOpacity(0.8)
+      ..color = color.withValues(alpha: 0.8)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
