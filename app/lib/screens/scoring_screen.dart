@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:dart_scoring_core/dart_scoring_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -37,6 +38,11 @@ class _ScoringScreenState extends State<ScoringScreen> {
 
   Offset? _lastMarkerPoint;
   DartHit? _lastHit;
+
+  /// Live diagnostic for auto-detect mode — see [DartLandingDebugState].
+  /// A [ValueNotifier] so it can update on every camera frame without
+  /// rebuilding the whole screen.
+  final ValueNotifier<DartLandingDebugState?> _debugState = ValueNotifier(null);
 
   @override
   void initState() {
@@ -82,6 +88,7 @@ class _ScoringScreenState extends State<ScoringScreen> {
 
   void _onCameraImage(CameraImage image) {
     final landing = _detector.processFrame(image);
+    _debugState.value = _detector.debugState;
     if (landing == null) return;
 
     final renderBox = _previewKey.currentContext?.findRenderObject() as RenderBox?;
@@ -140,6 +147,7 @@ class _ScoringScreenState extends State<ScoringScreen> {
       _cameraController?.stopImageStream();
     }
     _cameraController?.dispose();
+    _debugState.dispose();
     super.dispose();
   }
 
@@ -214,6 +222,13 @@ class _ScoringScreenState extends State<ScoringScreen> {
               CustomPaint(painter: BoardWireframePainter(calibration: controller.calibration!)),
               if (_lastMarkerPoint != null && _lastHit != null)
                 CustomPaint(painter: DartMarkerPainter(point: _lastMarkerPoint!, hit: _lastHit!)),
+              if (controller.autoDetectEnabled)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  right: 8,
+                  child: _AutoDetectDebugBanner(debugState: _debugState),
+                ),
             ],
           ),
         ),
@@ -327,5 +342,39 @@ class _ScoringScreenState extends State<ScoringScreen> {
       context.read<GameController>().endGame();
       Navigator.of(context).popUntil((r) => r.isFirst);
     }
+  }
+}
+
+/// Live readout of [DartLandingDetector]'s internal state while
+/// auto-detect is on — a diagnostic aid, not something a player needs
+/// day to day. If "動態" never drops near 0, the picture never reads as
+/// "still" (usually handheld shake, autofocus, or flickering light) and
+/// a landing will never be confirmed; if "等待偵測到大動作" never
+/// changes even when a dart is thrown, no motion big enough is being
+/// seen at all (try a wider frame, or check the camera preview itself
+/// looks right).
+class _AutoDetectDebugBanner extends StatelessWidget {
+  final ValueListenable<DartLandingDebugState?> debugState;
+
+  const _AutoDetectDebugBanner({required this.debugState});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<DartLandingDebugState?>(
+      valueListenable: debugState,
+      builder: (context, state, _) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            state?.toString() ?? '等待相機畫面…',
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        );
+      },
+    );
   }
 }

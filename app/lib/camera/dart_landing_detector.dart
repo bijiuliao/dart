@@ -13,6 +13,38 @@ class DetectedLanding {
   const DetectedLanding(this.imagePoint, this.imageSize);
 }
 
+/// A snapshot of the detector's internal state after the most recently
+/// processed frame. Exposed purely for diagnostics — e.g. a debug
+/// overlay on the scoring screen — so it's possible to tell *why*
+/// auto-detect isn't firing: is the picture too jittery to ever read as
+/// "still" (handheld shake, autofocus hunting, flickering light), or has
+/// no motion been seen at all (dart flight not entering frame)?
+class DartLandingDebugState {
+  /// Changed blocks between this frame and the previous one.
+  final int changedVsLastFrame;
+
+  /// Whether a big-enough motion event has been seen since the last
+  /// confirmed/reset baseline (the detector is now watching for it to
+  /// settle).
+  final bool motionSeen;
+
+  /// Consecutive "quiet" frames seen so far towards [stillFramesRequired].
+  final int stillCount;
+  final int stillFramesRequired;
+
+  const DartLandingDebugState({
+    required this.changedVsLastFrame,
+    required this.motionSeen,
+    required this.stillCount,
+    required this.stillFramesRequired,
+  });
+
+  @override
+  String toString() => motionSeen
+      ? '動態 $changedVsLastFrame・穩定 $stillCount/$stillFramesRequired'
+      : '動態 $changedVsLastFrame・等待偵測到大動作';
+}
+
 /// Best-effort, frame-difference based detector that watches the camera
 /// image stream for "something new and small appeared, then stopped
 /// moving" — i.e. a dart sticking in the board — and reports where.
@@ -26,7 +58,10 @@ class DetectedLanding {
 ///
 /// Tuning knobs (constructor parameters) trade sensitivity for false
 /// positives; defaults are a reasonable starting point for a phone
-/// mounted a stable ~1-1.5m from the board with steady lighting.
+/// mounted a stable ~1-1.5m from the board with steady lighting. A
+/// handheld phone's own micro-shake is often enough to keep
+/// [changedVsLastFrame] above the "quiet" threshold forever, so a dart
+/// landing never gets to be confirmed — see [debugState].
 class DartLandingDetector {
   final int gridCols;
   final int gridRows;
@@ -60,15 +95,22 @@ class DartLandingDetector {
   List<double>? _lastFrame;
   int _stillCount = 0;
   bool _motionSeen = false;
+  DartLandingDebugState? _debugState;
+
+  /// State after the most recently processed frame — read this from the
+  /// UI (after each [processFrame] call) to show a live diagnostic.
+  DartLandingDebugState? get debugState => _debugState;
 
   /// Feed one camera frame in. Returns a [DetectedLanding] the moment a
-  /// new, localized, now-still change is found, otherwise null.
+  /// new, localized, now-still change is found, otherwise null. Always
+  /// updates [debugState], regardless of the outcome.
   DetectedLanding? processFrame(CameraImage image) {
     final blocks = _computeBlockLuminance(image);
 
     if (_baseline == null) {
       _baseline = blocks;
       _lastFrame = blocks;
+      _updateDebug(0);
       return null;
     }
 
@@ -81,16 +123,19 @@ class DartLandingDetector {
       // wait for it to settle before looking for a new dart.
       _motionSeen = true;
       _stillCount = 0;
+      _updateDebug(changedNow);
       return null;
     }
 
     if (changedNow > minChangedBlocksForDart) {
       // Still settling.
       _stillCount = 0;
+      _updateDebug(changedNow);
       return null;
     }
 
     _stillCount++;
+    _updateDebug(changedNow);
     if (!_motionSeen || _stillCount < stillFramesRequired) return null;
 
     // Motion happened and the scene has now settled: whatever differs
@@ -105,6 +150,7 @@ class DartLandingDetector {
     _motionSeen = false;
     _stillCount = 0;
     _baseline = blocks; // adopt the settled frame so we don't re-trigger.
+    _updateDebug(changedNow);
 
     if (changedBlocks.length < minChangedBlocksForDart ||
         changedBlocks.length > maxChangedBlocksForDart) {
@@ -130,6 +176,15 @@ class DartLandingDetector {
     );
   }
 
+  void _updateDebug(int changedNow) {
+    _debugState = DartLandingDebugState(
+      changedVsLastFrame: changedNow,
+      motionSeen: _motionSeen,
+      stillCount: _stillCount,
+      stillFramesRequired: stillFramesRequired,
+    );
+  }
+
   /// Forces the next stable frame to be treated as a fresh baseline —
   /// call this right after a dart is pulled from the board (or the
   /// player confirms/discards a detection) so the next real change is
@@ -139,6 +194,7 @@ class DartLandingDetector {
     _lastFrame = null;
     _stillCount = 0;
     _motionSeen = false;
+    _debugState = null;
   }
 
   int _countChanged(List<double> a, List<double> b, {required double threshold}) {
